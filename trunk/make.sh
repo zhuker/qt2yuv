@@ -1,7 +1,11 @@
 #!/bin/bash
 
 set -xue
-CFLAGS="-O3"
 FFMPEG="./ffmpeg/include"
 FFMPEG_LIBS="./ffmpeg/lib/libswscale.a ./ffmpeg/lib/libavutil.a"
-gcc -arch i386 -std=c99 -o qt2yuv -I$FFMPEG $CFLAGS  qt2yuv.c -framework QuickTime -framework Carbon $FFMPEG_LIBS
+CFLAGS="-arch i386 -O3 -std=c99 -I$FFMPEG"
+
+for each in *c ;do
+gcc $CFLAGS -c $each
+done
+gcc -arch i386 -o qt2yuv *.o -framework QuickTime -framework Carbon $FFMPEG_LIBS
