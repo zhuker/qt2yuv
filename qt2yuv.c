@@ -163,7 +163,7 @@ void decodeFrame(qtMovie * capture, scale_t *scale, TimeValue myCurrTime) {
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        printf("qt2yuv v0.4.2\n");
+        printf("qt2yuv v0.4.3\n");
         printf("usage: qt2yuv -i -d -s [width] pathtofile.mov [nthFrame]\n");
         printf("\t-i interactive seek mode\n");
         printf("\t-d debug\n");
@@ -225,6 +225,7 @@ int main(int argc, char **argv)
 			yuv_assert(GetMoviesError() == noErr, "grab",
 					   "Couldn't GetMovieNextInterestingTime()");
 			if (qtm->next_frame_time == -1) {
+				decodeFrame(qtm, &scale, myCurrTime);
 				break;
 			}
 		}
