@@ -1,3 +1,24 @@
+/*                                                                                                                                                                                              
+ * qt2yuv main                                                                                                                                                                                  
+ * Copyright (c) 2009-2010 Alex Zhukov                                                                                                                                                      
+ *                                                                                                                                                                                              
+ * This file is part of qt2yuv.                                                                                                                                                                 
+ *                                                                                                                                                                                              
+ * qt2yuv is free software; you can redistribute it and/or                                                                                                                                      
+ * modify it under the terms of the GNU Lesser General Public                                                                                                                                   
+ * License as published by the Free Software Foundation; either                                                                                                                                 
+ * version 2.1 of the License, or (at your option) any later version.                                                                                                                           
+ *                                                                                                                                                                                              
+ * FFmpeg is distributed in the hope that it will be useful,                                                                                                                                    
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of                                                                                                                               
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU                                                                                                                            
+ * Lesser General Public License for more details.                                                                                                                                              
+ *                                                                                                                                                                                              
+ * You should have received a copy of the GNU Lesser General Public                                                                                                                             
+ * License along with FFmpeg; if not, write to the Free Software                                                                                                                                
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA                                                                                                                 
+ */                                                                                                                                                                                             
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/time.h>
@@ -131,7 +152,7 @@ void decodeFrame(qtMovie * capture, scale_t *scale, TimeValue myCurrTime) {
 
 	TimeValue videoTv = TrackTimeToMediaTime(myCurrTime, capture->videoTrack);
 	TimeValue videoTrackOffset =  GetTrackOffset(capture->videoTrack);
-	yuv_debug("videotv: %d off: %d\n", videoTv, videoTrackOffset);
+	yuv_debug("decodeFrame: videotv: %d off: %d\n", videoTv, videoTrackOffset);
 	
 	if (capture->timecoder) {
 		TimeRecord tr;
@@ -146,7 +167,7 @@ void decodeFrame(qtMovie * capture, scale_t *scale, TimeValue myCurrTime) {
 		TimeCodeRecord tcdata = {0};
 		TCGetTimeCodeAtTime(capture->timecoder, tr.value.lo, NULL, &tcdef, &tcdata, NULL);
 		printf("FRAME XTV=%d XVMTV=%d XNDFTC=%02d:%02d:%02d:%02d\n", myCurrTime, videoTv, (int32_t) tcdata.t.hours, (int32_t) tcdata.t.minutes, (int32_t) tcdata.t.seconds, (int32_t) tcdata.t.frames);
-		yuv_debug("%d %02d:%02d:%02d:%02d\n", myCurrTime, tcdata.t.hours, tcdata.t.minutes,tcdata.t.seconds,tcdata.t.frames);
+		yuv_debug("decodeFrame: %d %02d:%02d:%02d:%02d\n", myCurrTime, tcdata.t.hours, tcdata.t.minutes,tcdata.t.seconds,tcdata.t.frames);
 	} else {
 		printf("FRAME XTV=%d XVMTV=%d\n", myCurrTime, videoTv);
 	}
@@ -163,7 +184,7 @@ void decodeFrame(qtMovie * capture, scale_t *scale, TimeValue myCurrTime) {
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        printf("qt2yuv v0.4.3\n");
+        printf("qt2yuv v0.4.4\n");
         printf("usage: qt2yuv -i -d -s [width] pathtofile.mov [nthFrame]\n");
         printf("\t-i interactive seek mode\n");
         printf("\t-d debug\n");
@@ -196,7 +217,14 @@ int main(int argc, char **argv)
     yuv_debug("num: %d den: %d %.2ffps\n", num, den,
               (double) num / (double) den);
 	
-    printf("YUV4MPEG2 W%d H%d F%d:%d Ip A1:1 C420mpeg2 XTS=%d XVMTS=%d\n", dstW, dstH, num, den,
+	char interlaced = 'p';
+	if (qtm->fiel.fields == 2 && (qtm->fiel.detail % 2) == 0) {
+		interlaced = 'b';
+	} else if (qtm->fiel.fields == 2 && (qtm->fiel.detail % 2) == 1) {
+		interlaced = 't';
+	}
+	
+    printf("YUV4MPEG2 W%d H%d F%d:%d I%c A%d:%d C420mpeg2 XTS=%d XVMTS=%d\n", dstW, dstH, num, den, interlaced, qtm->pasp.hSpacing, qtm->pasp.vSpacing,
            qtm->timeScale, qtm->videoMediaTimeScale);
 	
 	if (opts.isInteractive) {
@@ -214,18 +242,19 @@ int main(int argc, char **argv)
 			TimeValue myCurrTime = qtMovie_setMovieTime(qtm, qtm->next_frame_time);
 			
 			if (i % opts.nth == 0) {
+				yuv_debug("frame: %d\n", i);
 				decodeFrame(qtm, &scale, myCurrTime);
 			}
 			
 			// increment counters
 			OSType myType = VisualMediaCharacteristic;
-			GetMovieNextInterestingTime(qtm->myMovie, nextTimeStep, 1,
+			short flags = nextTimeMediaSample;
+			GetMovieNextInterestingTime(qtm->myMovie, flags, 1,
 										&myType, myCurrTime, 1,
 										&qtm->next_frame_time, NULL);
 			yuv_assert(GetMoviesError() == noErr, "grab",
 					   "Couldn't GetMovieNextInterestingTime()");
 			if (qtm->next_frame_time == -1) {
-				decodeFrame(qtm, &scale, myCurrTime);
 				break;
 			}
 		}

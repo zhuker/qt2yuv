@@ -1,14 +1,61 @@
-/*
- *  qtmovie.c
- *  qt2yuv
- *
- *  Created by Alex Zhukov on 2/2/10.
- *  Copyright 2010 __MyCompanyName__. All rights reserved.
- *
- */
+/*                                                                                                                                                                                              
+ * qt2yuv                                                                                                                                                                                  
+ * Copyright (c) 2009-2010 Alex Zhukov                                                                                                                                                      
+ *                                                                                                                                                                                              
+ * This file is part of qt2yuv.                                                                                                                                                                 
+ *                                                                                                                                                                                              
+ * qt2yuv is free software; you can redistribute it and/or                                                                                                                                      
+ * modify it under the terms of the GNU Lesser General Public                                                                                                                                   
+ * License as published by the Free Software Foundation; either                                                                                                                                 
+ * version 2.1 of the License, or (at your option) any later version.                                                                                                                           
+ *                                                                                                                                                                                              
+ * FFmpeg is distributed in the hope that it will be useful,                                                                                                                                    
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of                                                                                                                               
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU                                                                                                                            
+ * Lesser General Public License for more details.                                                                                                                                              
+ *                                                                                                                                                                                              
+ * You should have received a copy of the GNU Lesser General Public                                                                                                                             
+ * License along with FFmpeg; if not, write to the Free Software                                                                                                                                
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA                                                                                                                 
+ */                                                                                                                                                                                             
 
 #include "qtmovie.h"
 #include "qt2yuv_util.h"
+
+void _media_getPixelAspect(Media m, PixelAspectRatioImageDescriptionExtension *pasp) {
+	SampleDescriptionHandle descH = (SampleDescriptionHandle)NewHandle(sizeof(Handle));
+	Handle handle = NewHandle(sizeof(Handle)); 
+	GetMediaSampleDescription(m, 1, descH);
+	long extensionCount = 0;
+	CountImageDescriptionExtensionType((ImageDescriptionHandle)descH, kICMImageDescriptionPropertyID_PixelAspectRatio, &extensionCount);
+	if (extensionCount != 0) {
+		GetImageDescriptionExtension((ImageDescriptionHandle)descH, &handle, kICMImageDescriptionPropertyID_PixelAspectRatio, 1);
+		PixelAspectRatioImageDescriptionExtension *p = (PixelAspectRatioImageDescriptionExtension*) (*handle);
+		pasp->hSpacing = CFSwapInt32BigToHost(p->hSpacing);
+		pasp->vSpacing = CFSwapInt32BigToHost(p->vSpacing);
+		yuv_debug("pasp: %d:%d\n", pasp->hSpacing, pasp->vSpacing);
+	}
+	DisposeHandle((Handle)descH);
+	DisposeHandle(handle);
+}
+
+void _media_getFieldInfo(Media m, FieldInfoImageDescriptionExtension2 *f) {
+	SampleDescriptionHandle descH = (SampleDescriptionHandle)NewHandle(sizeof(Handle));
+	Handle handle = NewHandle(sizeof(Handle)); 
+	
+	GetMediaSampleDescription(m, 1, descH);
+	long extensionCount = 0;
+	CountImageDescriptionExtensionType((ImageDescriptionHandle)descH, kICMImageDescriptionPropertyID_FieldInfo, &extensionCount);
+	if (extensionCount != 0) {
+		GetImageDescriptionExtension((ImageDescriptionHandle)descH, &handle, kICMImageDescriptionPropertyID_FieldInfo, 1);
+		FieldInfoImageDescriptionExtension2 *fiel = (FieldInfoImageDescriptionExtension2*) (*handle);
+		yuv_debug("fiel: %d %d\n", fiel->fields, fiel->detail);
+		f->fields = fiel->fields;
+		f->detail = fiel->detail;
+	}
+	DisposeHandle((Handle)descH);
+	DisposeHandle(handle);
+}
 
 qtMovie *qtMovie_open(char *filepath) {
     Handle myDataRef = nil;
@@ -17,8 +64,10 @@ qtMovie *qtMovie_open(char *filepath) {
     qtMovie *capture = malloc(sizeof(qtMovie));
 	memset(capture, 0, sizeof(qtMovie));
     short myResID = 0;
-	
-	
+	capture->pasp.hSpacing = 1;
+	capture->pasp.vSpacing = 1;
+	capture->fiel.fields = 1;
+	capture->fiel.detail = 1;
 	
     EnterMovies();
     // no old errors please
@@ -71,10 +120,15 @@ qtMovie *qtMovie_open(char *filepath) {
 		capture->videoTrack = videoTrack;
 		Media m = GetTrackMedia(videoTrack);
 		capture->videoMediaTimeScale = GetMediaTimeScale(m);
+		_media_getPixelAspect(m, &capture->pasp);
+		_media_getFieldInfo(m, &capture->fiel);
+
 	}
 
 	return capture;
 }
+
+
 
 
 void qtMovie_update(qtMovie * capture)
@@ -98,7 +152,7 @@ TimeValue qtMovie_setMovieTime(qtMovie *capture, int64_t timeValue) {
 	TimeValue myCurrTime = GetMovieTime(capture->myMovie, NULL);
 	int64_t pts = (int64_t) (((float) myCurrTime) * capture->msecScale);
 	timeToString(pts, timeStr);
-	yuv_debug("%lld %lld %s\n", (int64_t) myCurrTime, pts, timeStr);
+	yuv_debug("qtMovie_setMovieTime: %lld %lld %s\n", (int64_t) myCurrTime, pts, timeStr);
 	return myCurrTime;
 }
 

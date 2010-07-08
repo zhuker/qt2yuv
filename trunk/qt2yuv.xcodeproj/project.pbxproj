@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		661A92CD110DBA60004742D6 /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BCD10B471D900E65A46 /* libavutil.a */; };
-		661A92CE110DBA60004742D6 /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BCE10B471D900E65A46 /* libswscale.a */; };
+		660310F0115AD8710034145C /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BCD10B471D900E65A46 /* libavutil.a */; };
+		660310F1115AD8710034145C /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BCE10B471D900E65A46 /* libswscale.a */; };
 		661C4BB610B471D000E65A46 /* qt2yuv.c in Sources */ = {isa = PBXBuildFile; fileRef = 661C4BB510B471D000E65A46 /* qt2yuv.c */; };
 		661C4BDD10B4723D00E65A46 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BDC10B4723D00E65A46 /* Carbon.framework */; };
 		661C4BE210B4724500E65A46 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BE110B4724500E65A46 /* CoreFoundation.framework */; };
@@ -68,8 +68,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				661A92CD110DBA60004742D6 /* libavutil.a in Frameworks */,
-				661A92CE110DBA60004742D6 /* libswscale.a in Frameworks */,
+				660310F0115AD8710034145C /* libavutil.a in Frameworks */,
+				660310F1115AD8710034145C /* libswscale.a in Frameworks */,
 				661C4BDD10B4723D00E65A46 /* Carbon.framework in Frameworks */,
 				661C4BE210B4724500E65A46 /* CoreFoundation.framework in Frameworks */,
 				661C4BE810B4725400E65A46 /* QuickTime.framework in Frameworks */,
@@ -286,12 +286,15 @@
 		1DEB928B08733DD80010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_LINK_WITH_DYNAMIC_LIBRARIES = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = ffmpeg/lib;
 				PREBINDING = NO;
 				SDKROOT = macosx10.6;
+				VALID_ARCHS = i386;
 			};
 			name = Release;
 		};
