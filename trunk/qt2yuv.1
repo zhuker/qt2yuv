@@ -16,7 +16,7 @@
 .Nm
 .Op Fl i                \" [-abcd]
 .Op Fl d                \" [-abcd]
-.Op Fl s Ar height         \" [-a path] 
+.Op Fl s Ar width         \" [-a path] 
 .Ar file.mov              \" [file]
 .Sh DESCRIPTION          \" Section Header - required - don't modify
 .Nm 
@@ -28,8 +28,8 @@ A list of flags and their descriptions:
 Debug mode.
 .It Fl i
 Interactive mode. Allows to seek to timevalue. Reads timevalue from stdin, seeks to it and outputs frame to stdout.
-.It Fl s Ar height                 \"-a flag as a list item
-Scales output video to specified height preserving aspect.
+.It Fl s Ar width                 \"-a flag as a list item
+Scales output video to specified width preserving aspect.
 .El                      \" Ends the list
 .Pp
 .\" .Sh ENVIRONMENT      \" May not be needed
