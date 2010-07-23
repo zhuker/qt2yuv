@@ -57,10 +57,10 @@ int64_t timeMillis()
 
 struct scale {
     struct SwsContext *sws;
-    int src_stride[3];
-    int dst_stride[3];
-    uint8_t *src[3];
-    uint8_t *dst[3];
+    int src_stride[4];
+    int dst_stride[4];
+    uint8_t *src[4];
+    uint8_t *dst[4];
 	
     void *src_data;
     void *dst_data;
@@ -74,33 +74,62 @@ struct scale {
 typedef struct scale scale_t;
 
 /** Initializes YUVS to YUV420P converter. */
-scale_t *scale_init(scale_t * scale, int W, int H, int dstW, int dstH)
+scale_t *scale_init(scale_t * scale, int W, int H, int dstW, int dstH, enum PixelFormat dstPixFmt)
 {
-    scale->sws =
-	sws_getContext(W, H, PIX_FMT_YUYV422, dstW, dstH, PIX_FMT_YUV420P,
-				   SWS_BILINEAR, NULL, NULL, NULL);
+    scale->sws = sws_getContext(W, H, PIX_FMT_YUYV422, dstW, dstH, dstPixFmt, SWS_BILINEAR, NULL, NULL, NULL);
     yuv_assert(scale->sws != NULL, "open", "cant create sws context");
     scale->src_stride[0] = 2 * W;
     scale->src_stride[1] = 0;
     scale->src_stride[2] = 0;
+    scale->src_stride[3] = 0;
     scale->W = W;
     scale->H = H;
-    int uStride = (dstW >> 1);
-    int vStride = (dstW >> 1);
+	
+	
+	int ySize = dstW * dstH;
+    int dst_size = 0;
+	int uSize = 0;
+    int uStride = 0;
+    int vStride = 0;
+	switch (dstPixFmt) {
+		case PIX_FMT_YUV420P:
+			dst_size = dstW * (dstH + (dstH >> 1));
+			uSize = ySize >> 2;
+			uStride = (dstW >> 1);
+			vStride = (dstW >> 1);
+			break;
+		case PIX_FMT_YUV411P:
+			dst_size = dstW * (dstH + (dstH >> 1));
+			uSize = ySize >> 2;
+			uStride = (dstW >> 2);
+			vStride = (dstW >> 2);
+			break;
+		case PIX_FMT_YUV422P:
+			dst_size = dstW * dstH * 2;
+			uSize = ySize >> 1;
+			uStride = (dstW >> 1);
+			vStride = (dstW >> 1);
+			break;
+		default:
+			fprintf(stderr, "pixel format not supported\n");
+			exit(1);
+			break;
+	}
     scale->dst_stride[0] = dstW;
     scale->dst_stride[1] = uStride;
     scale->dst_stride[2] = vStride;
-	
-    int dst_size = dstW * (dstH + (dstH >> 1));
-	int ySize = dstW * dstH;
-	int uSize = ySize >> 2;
+    scale->dst_stride[3] = 0;
+	yuv_debug("dst stride: %d %d %d\n", dstW, uStride, vStride);
     scale->dstW = dstW;
     scale->dstH = dstH;
     scale->dst_size = dst_size;
     scale->dst_data = malloc(dst_size);
+	yuv_debug("dst size: %d Y: %d UV: %d\n", dst_size, ySize, uSize);
+	yuv_assert(dst_size == ySize + uSize*2, "scale_init", "dst_size != ySize + uSize * 2");
     scale->dst[0] = scale->dst_data;
     scale->dst[1] = scale->dst_data + ySize;
     scale->dst[2] = scale->dst_data + ySize + uSize;
+    scale->dst[3] = 0;
 	return scale;
 }
 
@@ -109,11 +138,12 @@ void scale_set_srcstride(scale_t * scale, int s0, int s1, int s2)
     scale->src_stride[0] = s0;
     scale->src_stride[1] = s1;
     scale->src_stride[2] = s2;
+    scale->src_stride[3] = 0;
 }
 
 void scale_doScale(scale_t * scale, void *src_data)
 {
-    uint8_t *src[3] = { src_data, NULL, NULL };
+    uint8_t *src[4] = { src_data, NULL, NULL, NULL };
     sws_scale(scale->sws, src, scale->src_stride, 0, scale->H, scale->dst,
               scale->dst_stride);
 }
@@ -124,7 +154,11 @@ typedef struct opts {
 	int scaleToWidth;
 	int nth;
 	int isInteractive;
+	enum PixelFormat dstPixFmt;
 } opts_t;
+
+static char* pixFmtNames[PIX_FMT_NB];
+static char* pixFmtYSCSS[PIX_FMT_NB];
 
 opts_t *parse_opts(opts_t *opts, int argc, char **argv) {
 	int i = 1;
@@ -136,6 +170,13 @@ opts_t *parse_opts(opts_t *opts, int argc, char **argv) {
 		} else if (!strcmp(argv[i], "-s")) {
 			opts->scaleToWidth = atoi(argv[i+1]);
 			opts->scaleToWidth = align16(opts->scaleToWidth);
+			i++;
+		} else if (!strcmp(argv[i], "-c")) {
+			if (!strcmp("422", argv[i+1])) {
+				opts->dstPixFmt = PIX_FMT_YUV422P;
+			} else if (!strcmp("411", argv[i+1])) {
+				opts->dstPixFmt = PIX_FMT_YUV411P;
+			}
 			i++;
 		} else if (argv[i][0] != '-') {
 			break;
@@ -183,17 +224,26 @@ void decodeFrame(qtMovie * capture, scale_t *scale, TimeValue myCurrTime) {
 
 int main(int argc, char **argv)
 {
+	pixFmtNames[PIX_FMT_YUV420P] = "420mpeg2";
+	pixFmtNames[PIX_FMT_YUV422P] = "422";
+	pixFmtNames[PIX_FMT_YUV411P] = "411";
+	pixFmtYSCSS[PIX_FMT_YUV420P] = "420MPEG2";
+	pixFmtYSCSS[PIX_FMT_YUV422P] = "422";
+	pixFmtYSCSS[PIX_FMT_YUV411P] = "411";
+	
     if (argc < 2) {
-        printf("qt2yuv v0.4.4\n");
-        printf("usage: qt2yuv -i -d -s [width] pathtofile.mov [nthFrame]\n");
+        printf("qt2yuv v0.4.5-pre1\n");
+        printf("usage: qt2yuv -i -d -s [width] -c [colorspace] pathtofile.mov [nthFrame]\n");
         printf("\t-i interactive seek mode\n");
         printf("\t-d debug\n");
         printf("\t-s scale to width (always rounded by 16)\n");
+        printf("\t-c colorspace - output colorspace (default: 420mpeg2) also available: 422 411\n");
         printf("\t[nthFrame] render only nth frame (default: 1)\n");
         exit(1);
     }
-	opts_t opts = {NULL, 0, 1, 0};
+	opts_t opts = {NULL, 0, 1, 0, PIX_FMT_YUV420P};
 	parse_opts(&opts, argc, argv);
+	yuv_debug("output colorspace %s\n", pixFmtNames[opts.dstPixFmt]);
 	
 	qtMovie *qtm = qtMovie_open(opts.filename);
 	
@@ -208,7 +258,7 @@ int main(int argc, char **argv)
 		dstH = (((double)opts.scaleToWidth / W) * H);
 		dstH = align16(dstH);
 	}
-    scale_init(&scale, W, H, dstW, dstH);
+    scale_init(&scale, W, H, dstW, dstH, opts.dstPixFmt);
 	
     int num = 0;
     int den = 0;
@@ -224,7 +274,12 @@ int main(int argc, char **argv)
 		interlaced = 't';
 	}
 	
-    printf("YUV4MPEG2 W%d H%d F%d:%d I%c A%d:%d C420mpeg2 XTS=%d XVMTS=%d\n", dstW, dstH, num, den, interlaced, qtm->pasp.hSpacing, qtm->pasp.vSpacing,
+    printf("YUV4MPEG2 W%d H%d F%d:%d I%c A%d:%d C%s XYSCSS=%s XTS=%d XVMTS=%d\n", 
+		   dstW, dstH, 
+		   num, den, 
+		   interlaced, 
+		   qtm->pasp.hSpacing, qtm->pasp.vSpacing, 
+		   pixFmtNames[opts.dstPixFmt], pixFmtYSCSS[opts.dstPixFmt],
            qtm->timeScale, qtm->videoMediaTimeScale);
 	
 	if (opts.isInteractive) {
