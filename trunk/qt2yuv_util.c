@@ -58,3 +58,11 @@ char *timeToString(int64_t msec, char *dst)
     snprintf(dst, 13, "%02d:%02d:%02d.%03d", h, m, s, ms);
     return dst;
 }
+
+
+int64_t timeMillis()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
+}

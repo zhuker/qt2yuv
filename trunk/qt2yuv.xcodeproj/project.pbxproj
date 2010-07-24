@@ -13,6 +13,7 @@
 		661C4BDD10B4723D00E65A46 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BDC10B4723D00E65A46 /* Carbon.framework */; };
 		661C4BE210B4724500E65A46 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BE110B4724500E65A46 /* CoreFoundation.framework */; };
 		661C4BE810B4725400E65A46 /* QuickTime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 661C4BE710B4725400E65A46 /* QuickTime.framework */; };
+		665AB60E11FB0CE300F74E82 /* qt2yuv_img.c in Sources */ = {isa = PBXBuildFile; fileRef = 665AB60D11FB0CE300F74E82 /* qt2yuv_img.c */; };
 		6671120F1117A21A00C9318F /* qtmovie.c in Sources */ = {isa = PBXBuildFile; fileRef = 6671120E1117A21A00C9318F /* qtmovie.c */; };
 		667112231117A39F00C9318F /* qt2yuv_util.c in Sources */ = {isa = PBXBuildFile; fileRef = 667112221117A39F00C9318F /* qt2yuv_util.c */; };
 		8DD76FB00486AB0100D96B5E /* qt2yuv.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* qt2yuv.1 */; };
@@ -55,6 +56,8 @@
 		661C4BDC10B4723D00E65A46 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
 		661C4BE110B4724500E65A46 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = /System/Library/Frameworks/CoreFoundation.framework; sourceTree = "<absolute>"; };
 		661C4BE710B4725400E65A46 /* QuickTime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickTime.framework; path = /System/Library/Frameworks/QuickTime.framework; sourceTree = "<absolute>"; };
+		665AB60C11FB0CE300F74E82 /* qt2yuv_img.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qt2yuv_img.h; sourceTree = "<group>"; };
+		665AB60D11FB0CE300F74E82 /* qt2yuv_img.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = qt2yuv_img.c; sourceTree = "<group>"; };
 		6671120D1117A21A00C9318F /* qtmovie.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qtmovie.h; sourceTree = "<group>"; };
 		6671120E1117A21A00C9318F /* qtmovie.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = qtmovie.c; sourceTree = "<group>"; };
 		667112211117A39F00C9318F /* qt2yuv_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qt2yuv_util.h; sourceTree = "<group>"; };
@@ -101,6 +104,8 @@
 				6671120E1117A21A00C9318F /* qtmovie.c */,
 				667112211117A39F00C9318F /* qt2yuv_util.h */,
 				667112221117A39F00C9318F /* qt2yuv_util.c */,
+				665AB60C11FB0CE300F74E82 /* qt2yuv_img.h */,
+				665AB60D11FB0CE300F74E82 /* qt2yuv_img.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -225,6 +230,7 @@
 				661C4BB610B471D000E65A46 /* qt2yuv.c in Sources */,
 				6671120F1117A21A00C9318F /* qtmovie.c in Sources */,
 				667112231117A39F00C9318F /* qt2yuv_util.c in Sources */,
+				665AB60E11FB0CE300F74E82 /* qt2yuv_img.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

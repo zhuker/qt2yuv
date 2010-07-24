@@ -32,4 +32,6 @@ void yuv_debug(char *fmt, ...);
 void yuv_assertf(bool condition, char *func, char *format, int args);
 void yuv_assert(bool condition, char *func, char *message);
 char *timeToString(int64_t msec, char *dst);
+int64_t timeMillis();
+
 #define align16(x) (16 + ((x - 1) & ~15))

@@ -27,17 +27,8 @@
 #include <stdlib.h>
 #include "qtmovie.h"
 #include "qt2yuv_util.h"
+#include "qt2yuv_img.h"
 
-
-void writepnm(int w, int h, void *data, char *filename)
-{
-    FILE *fd = fopen(filename, "w");
-    yuv_assert(fd != NULL, "writepnm", "cant open file for writting");
-    fprintf(fd, "P5\n%d %d\n255\n", w, h);
-    int written = fwrite(data, w * h, 1, fd);
-    yuv_assert(1 == written, "writepnm", "short write");
-    fclose(fd);
-}
 int W = 0;
 int H = 0;
 
@@ -48,27 +39,10 @@ void writeFrame(int64_t timeValue, int size, void *data)
     yuv_assert(1 == written, "writeFrame", "short write");
 }
 
-int64_t timeMillis()
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
-}
-
 struct scale {
     struct SwsContext *sws;
-    int src_stride[4];
-    int dst_stride[4];
-    uint8_t *src[4];
-    uint8_t *dst[4];
-	
-    void *src_data;
-    void *dst_data;
-    int W;
-    int H;
-    int dstW;
-    int dstH;
-    int dst_size;
+	qt2yuv_pict src;
+	qt2yuv_pict dst;
 };
 
 typedef struct scale scale_t;
@@ -76,76 +50,38 @@ typedef struct scale scale_t;
 /** Initializes YUVS to YUV420P converter. */
 scale_t *scale_init(scale_t * scale, int W, int H, int dstW, int dstH, enum PixelFormat dstPixFmt)
 {
-    scale->sws = sws_getContext(W, H, PIX_FMT_YUYV422, dstW, dstH, dstPixFmt, SWS_BILINEAR, NULL, NULL, NULL);
-    yuv_assert(scale->sws != NULL, "open", "cant create sws context");
-    scale->src_stride[0] = 2 * W;
-    scale->src_stride[1] = 0;
-    scale->src_stride[2] = 0;
-    scale->src_stride[3] = 0;
-    scale->W = W;
-    scale->H = H;
+    scale->sws = sws_getContext(W, H, PIX_FMT_YUYV422, dstW, dstH, dstPixFmt, SWS_BILINEAR | SWS_PRINT_INFO, NULL, NULL, NULL);
+	yuv_assert(scale->sws != NULL, "open", "cant create sws context");
+
+	scale->src.datasize = 0;
+	scale->src.data[0] = NULL;
+	scale->src.data[1] = NULL;
+	scale->src.data[2] = NULL;
+	scale->src.data[3] = NULL;
+	scale->src.linesize[0] = 0;
+	scale->src.linesize[1] = 0;
+	scale->src.linesize[2] = 0;
+	scale->src.linesize[3] = 0;
+	scale->src.w = W;
+	scale->src.h = H;
 	
-	
-	int ySize = dstW * dstH;
-    int dst_size = 0;
-	int uSize = 0;
-    int uStride = 0;
-    int vStride = 0;
-	switch (dstPixFmt) {
-		case PIX_FMT_YUV420P:
-			dst_size = dstW * (dstH + (dstH >> 1));
-			uSize = ySize >> 2;
-			uStride = (dstW >> 1);
-			vStride = (dstW >> 1);
-			break;
-		case PIX_FMT_YUV411P:
-			dst_size = dstW * (dstH + (dstH >> 1));
-			uSize = ySize >> 2;
-			uStride = (dstW >> 2);
-			vStride = (dstW >> 2);
-			break;
-		case PIX_FMT_YUV422P:
-			dst_size = dstW * dstH * 2;
-			uSize = ySize >> 1;
-			uStride = (dstW >> 1);
-			vStride = (dstW >> 1);
-			break;
-		default:
-			fprintf(stderr, "pixel format not supported\n");
-			exit(1);
-			break;
-	}
-    scale->dst_stride[0] = dstW;
-    scale->dst_stride[1] = uStride;
-    scale->dst_stride[2] = vStride;
-    scale->dst_stride[3] = 0;
-	yuv_debug("dst stride: %d %d %d\n", dstW, uStride, vStride);
-    scale->dstW = dstW;
-    scale->dstH = dstH;
-    scale->dst_size = dst_size;
-    scale->dst_data = malloc(dst_size);
-	yuv_debug("dst size: %d Y: %d UV: %d\n", dst_size, ySize, uSize);
-	yuv_assert(dst_size == ySize + uSize*2, "scale_init", "dst_size != ySize + uSize * 2");
-    scale->dst[0] = scale->dst_data;
-    scale->dst[1] = scale->dst_data + ySize;
-    scale->dst[2] = scale->dst_data + ySize + uSize;
-    scale->dst[3] = 0;
+	qt2yuv_picture_alloc(&(scale->dst), dstPixFmt, dstW, dstH);
 	return scale;
 }
 
 void scale_set_srcstride(scale_t * scale, int s0, int s1, int s2)
 {
-    scale->src_stride[0] = s0;
-    scale->src_stride[1] = s1;
-    scale->src_stride[2] = s2;
-    scale->src_stride[3] = 0;
+    scale->src.linesize[0] = s0;
+    scale->src.linesize[1] = s1;
+    scale->src.linesize[2] = s2;
+    scale->src.linesize[3] = 0;
 }
 
 void scale_doScale(scale_t * scale, void *src_data)
 {
-    uint8_t *src[4] = { src_data, NULL, NULL, NULL };
-    sws_scale(scale->sws, src, scale->src_stride, 0, scale->H, scale->dst,
-              scale->dst_stride);
+	scale->src.data[0] = src_data;
+    sws_scale(scale->sws, scale->src.data, scale->src.linesize, 0, scale->src.h, scale->dst.data,
+              scale->dst.linesize);
 }
 
 
@@ -218,7 +154,7 @@ void decodeFrame(qtMovie * capture, scale_t *scale, TimeValue myCurrTime) {
 	LockPixels(myPixMapHandle);
 	scale_set_srcstride(scale, GetPixRowBytes(myPixMapHandle), 0, 0);
 	scale_doScale(scale, GetPixBaseAddr(myPixMapHandle));
-	writeFrame(myCurrTime, scale->dst_size, scale->dst_data);
+	writeFrame(myCurrTime, scale->dst.datasize, scale->dst.data[0]);
 	UnlockPixels(myPixMapHandle);
 }
 
@@ -232,7 +168,7 @@ int main(int argc, char **argv)
 	pixFmtYSCSS[PIX_FMT_YUV411P] = "411";
 	
     if (argc < 2) {
-        printf("qt2yuv v0.4.5-pre1\n");
+        printf("qt2yuv v0.4.5\n");
         printf("usage: qt2yuv -i -d -s [width] -c [colorspace] pathtofile.mov [nthFrame]\n");
         printf("\t-i interactive seek mode\n");
         printf("\t-d debug\n");
