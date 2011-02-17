@@ -156,6 +156,16 @@ TimeValue qtMovie_setMovieTime(qtMovie *capture, int64_t timeValue) {
 	return myCurrTime;
 }
 
+void qtMovie_frameRateFromContainer(qtMovie *qtm, int *num, int *den)
+{
+	TimeScale ts = GetMovieTimeScale(qtm->myMovie);
+	OSType myType = VisualMediaCharacteristic;
+	TimeValue nextTime = 0;
+	GetMovieNextInterestingTime(qtm->myMovie, nextTimeMediaSample, 1, &myType, 0, 1, &nextTime, NULL);
+    *num = ts;
+    *den = nextTime;
+}
+
 void qtMovie_detectFrameRate(qtMovie *qtm, int *num, int *den)
 {
     OSType myType = VisualMediaCharacteristic;
