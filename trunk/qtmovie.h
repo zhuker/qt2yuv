@@ -44,4 +44,5 @@ typedef struct qtMovie {
 void qtMovie_update(qtMovie * capture);
 qtMovie *qtMovie_open(char *filepath);
 TimeValue qtMovie_setMovieTime(qtMovie *capture, int64_t timeValue);
+void qtMovie_frameRateFromContainer(qtMovie *qtm, int *num, int *den);
 void qtMovie_detectFrameRate(qtMovie *qtm, int *num, int *den);

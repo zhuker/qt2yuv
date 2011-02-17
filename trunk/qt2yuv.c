@@ -91,6 +91,7 @@ typedef struct opts {
 	int nth;
 	int isInteractive;
 	enum PixelFormat dstPixFmt;
+	int detectFrameRate;
 } opts_t;
 
 static char* pixFmtNames[PIX_FMT_NB];
@@ -101,6 +102,8 @@ opts_t *parse_opts(opts_t *opts, int argc, char **argv) {
 	for(i=1;i<argc;i++) {
 		if (!strcmp(argv[i], "-d")) {
 			qt2yuv_debug = 1;
+		} else if (!strcmp(argv[i], "-f")) {
+			opts->detectFrameRate = true;
 		} else if (!strcmp(argv[i], "-i")) {
 			opts->isInteractive = 1;
 		} else if (!strcmp(argv[i], "-s")) {
@@ -168,16 +171,17 @@ int main(int argc, char **argv)
 	pixFmtYSCSS[PIX_FMT_YUV411P] = "411";
 	
     if (argc < 2) {
-        printf("qt2yuv v0.4.5\n");
+        printf("qt2yuv v0.4.6\n");
         printf("usage: qt2yuv -i -d -s [width] -c [colorspace] pathtofile.mov [nthFrame]\n");
         printf("\t-i interactive seek mode\n");
         printf("\t-d debug\n");
         printf("\t-s scale to width (always rounded by 16)\n");
         printf("\t-c colorspace - output colorspace (default: 420mpeg2) also available: 422 411\n");
+        printf("\t-f - detect frame rate\n");
         printf("\t[nthFrame] render only nth frame (default: 1)\n");
         exit(1);
     }
-	opts_t opts = {NULL, 0, 1, 0, PIX_FMT_YUV420P};
+	opts_t opts = {NULL, 0, 1, 0, PIX_FMT_YUV420P, 0};
 	parse_opts(&opts, argc, argv);
 	yuv_debug("output colorspace %s\n", pixFmtNames[opts.dstPixFmt]);
 	
@@ -198,7 +202,11 @@ int main(int argc, char **argv)
 	
     int num = 0;
     int den = 0;
-    qtMovie_detectFrameRate(qtm, &num, &den);
+	if (opts.detectFrameRate) {
+		qtMovie_detectFrameRate(qtm, &num, &den);
+	} else {
+		qtMovie_frameRateFromContainer(qtm, &num, &den);
+	}
 	
     yuv_debug("num: %d den: %d %.2ffps\n", num, den,
               (double) num / (double) den);
