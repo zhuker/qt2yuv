@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 	pixFmtYSCSS[PIX_FMT_YUV411P] = "411";
 	
     if (argc < 2) {
-        printf("qt2yuv v0.4.6\n");
+        printf("qt2yuv v0.4.7\n");
         printf("usage: qt2yuv -i -d -s [width] -c [colorspace] pathtofile.mov [nthFrame]\n");
         printf("\t-i interactive seek mode\n");
         printf("\t-d debug\n");

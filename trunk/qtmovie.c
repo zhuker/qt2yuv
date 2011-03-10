@@ -95,7 +95,9 @@ qtMovie *qtMovie_open(char *filepath) {
                 "Couldn't create a NewMovieFromDataRef() - error is %d.\n",
                 myErr);
 	
-    GetMovieBox(capture->myMovie, &capture->size);
+	GetMovieNaturalBoundsRect(capture->myMovie, &capture->size);
+	SetMovieBox(capture->myMovie, &capture->size);
+	yuv_debug("natural bounds: %d x %d\n", capture->size.right, capture->size.bottom);
     myErr = QTNewGWorld(&capture->myGWorld, kYUVSPixelFormat,
                         &capture->size, nil, nil, 0);
     yuv_assert(myErr == noErr, "open",
